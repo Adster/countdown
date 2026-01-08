@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Countdown to June 12th, 2026</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Floating particles for main screen */
+        body.particles-enabled::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(255, 255, 255, 0.12) 0%, transparent 50%),
+                radial-gradient(circle at 60% 60%, rgba(255, 255, 255, 0.08) 0%, transparent 50%);
+            animation: floatMain 25s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        @keyframes floatMain {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            25% { transform: translate(50px, -40px) scale(1.1); }
+            50% { transform: translate(-30px, 30px) scale(0.95); }
+            75% { transform: translate(40px, -20px) scale(1.05); }
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 50px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            max-width: 900px;
+            width: 100%;
+            position: relative;
+            z-index: 1;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .target-date {
+            text-align: center;
+            font-size: 1.2em;
+            margin-bottom: 40px;
+            opacity: 0.9;
+        }
+
+        .countdown-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .countdown-item {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 15px;
+            padding: 30px 20px;
+            text-align: center;
+            transition: transform 0.3s ease;
+            overflow: hidden;
+        }
+
+        .countdown-item:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .countdown-value {
+            font-size: 3em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+            display: block;
+            position: relative;
+            height: 1.2em;
+            overflow: hidden;
+        }
+
+        .number-wrapper {
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.6s ease-in-out;
+            width: 100%;
+        }
+
+        .number-current,
+        .number-next {
+            height: 1.2em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .countdown-label {
+            font-size: 1em;
+            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .working-days-section {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .working-days-label {
+            font-size: 1.2em;
+            margin-bottom: 15px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .working-days-value {
+            font-size: 3em;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Theme styles */
+        .theme-ocean {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .theme-sunset {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .theme-forest {
+            background: linear-gradient(135deg, #4fd1c5 0%, #38b2ac 50%, #2c7a7b 100%);
+        }
+
+        .theme-fire {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+
+        .theme-night {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+        }
+
+        .theme-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            font-size: 1.8em;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .theme-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        .theme-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .theme-overlay.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .theme-popup {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            max-width: 500px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .theme-popup h2 {
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 2em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .effects-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .effects-section h3 {
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            text-align: center;
+        }
+
+        .toggle-option {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .toggle-option:last-child {
+            border-bottom: none;
+        }
+
+        .toggle-label {
+            font-size: 1em;
+            opacity: 0.9;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 26px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 13px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .toggle-switch.active {
+            background: rgba(76, 175, 80, 0.6);
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .toggle-switch.active::after {
+            transform: translateX(24px);
+        }
+
+        .theme-options {
+            display: grid;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .theme-option {
+            padding: 15px 25px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 500;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .theme-option:hover {
+            transform: translateX(5px);
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .theme-option.active {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.8);
+        }
+
+        .close-popup {
+            width: 100%;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            color: white;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .close-popup:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            .countdown-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .container {
+                padding: 30px 20px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            .countdown-value {
+                font-size: 2em;
+            }
+
+            .theme-button {
+                width: 50px;
+                height: 50px;
+                font-size: 1.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="theme-controls">
+        <button class="theme-button" onclick="openThemePopup()">🎨</button>
+    </div>
+
+    <div class="theme-overlay" id="themeOverlay" onclick="closeThemePopup(event)">
+        <div class="theme-popup" id="themePopup" onclick="event.stopPropagation()">
+            <h2>Customize Your Experience</h2>
+            
+            <div class="effects-section">
+                <h3>✨ Visual Effects</h3>
+                <div class="toggle-option">
+                    <span class="toggle-label">Floating Particles</span>
+                    <div class="toggle-switch" id="particlesToggle" onclick="toggleEffect('particles')"></div>
+                </div>
+                <div class="toggle-option">
+                    <span class="toggle-label">Number Animations</span>
+                    <div class="toggle-switch" id="animationsToggle" onclick="toggleEffect('animations')"></div>
+                </div>
+            </div>
+            
+            <h3 style="margin-bottom: 15px; text-align: center;">🎨 Themes</h3>
+            <div class="theme-options">
+                <div class="theme-option ocean" onclick="selectTheme(0)">🌊 Ocean</div>
+                <div class="theme-option sunset" onclick="selectTheme(1)">🌅 Sunset</div>
+                <div class="theme-option forest" onclick="selectTheme(2)">🌲 Forest</div>
+                <div class="theme-option fire" onclick="selectTheme(3)">🔥 Fire</div>
+                <div class="theme-option night" onclick="selectTheme(4)">🌙 Night</div>
+            </div>
+            <button class="close-popup" onclick="closeThemePopup()">Close</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1>Countdown to Summer Break</h1>
+        <div class="target-date">June 12th, 2026 at 4:00 PM</div>
+        
+        <div class="countdown-grid">
+            <div class="countdown-item">
+                <span class="countdown-value" id="months">
+                    <span class="number-wrapper">
+                        <span class="number-current">0</span>
+                        <span class="number-next">0</span>
+                    </span>
+                </span>
+                <span class="countdown-label">Months</span>
+            </div>
+            <div class="countdown-item">
+                <span class="countdown-value" id="days">
+                    <span class="number-wrapper">
+                        <span class="number-current">0</span>
+                        <span class="number-next">0</span>
+                    </span>
+                </span>
+                <span class="countdown-label">Days</span>
+            </div>
+            <div class="countdown-item">
+                <span class="countdown-value" id="hours">
+                    <span class="number-wrapper">
+                        <span class="number-current">0</span>
+                        <span class="number-next">0</span>
+                    </span>
+                </span>
+                <span class="countdown-label">Hours</span>
+            </div>
+            <div class="countdown-item">
+                <span class="countdown-value" id="minutes">
+                    <span class="number-wrapper">
+                        <span class="number-current">0</span>
+                        <span class="number-next">0</span>
+                    </span>
+                </span>
+                <span class="countdown-label">Minutes</span>
+            </div>
+            <div class="countdown-item">
+                <span class="countdown-value" id="seconds">
+                    <span class="number-wrapper">
+                        <span class="number-current">0</span>
+                        <span class="number-next">0</span>
+                    </span>
+                </span>
+                <span class="countdown-label">Seconds</span>
+            </div>
+        </div>
+
+        <div class="working-days-section">
+            <div class="working-days-label">UK Working Days Remaining</div>
+            <div class="working-days-value" id="workingDays">0</div>
+        </div>
+    </div>
+
+    <script>
+        // Target date: June 12th, 2026 at 4:00 PM
+        const targetDate = new Date('2026-06-12T16:00:00');
+
+        // Theme management
+        const themes = ['theme-ocean', 'theme-sunset', 'theme-forest', 'theme-fire', 'theme-night'];
+        let currentThemeIndex = 0;
+
+        // Visual effects state
+        const effects = {
+            particles: true,
+            animations: true
+        };
+
+        // Store previous values for animation
+        let previousValues = {
+            months: null,
+            days: null,
+            hours: null,
+            minutes: null,
+            seconds: null
+        };
+
+        // Load saved preferences
+        const savedTheme = localStorage.getItem('countdown-theme');
+        const savedEffects = localStorage.getItem('countdown-effects');
+        
+        if (savedTheme) {
+            currentThemeIndex = themes.indexOf(savedTheme);
+            if (currentThemeIndex === -1) currentThemeIndex = 0;
+            document.body.className = themes[currentThemeIndex];
+        } else {
+            document.body.className = themes[0];
+        }
+
+        if (savedEffects) {
+            Object.assign(effects, JSON.parse(savedEffects));
+        }
+
+        // Apply saved effects
+        function applyEffects() {
+            document.body.classList.toggle('particles-enabled', effects.particles);
+            document.body.classList.toggle('animations-enabled', effects.animations);
+            
+            document.getElementById('particlesToggle').classList.toggle('active', effects.particles);
+            document.getElementById('animationsToggle').classList.toggle('active', effects.animations);
+        }
+
+        function toggleEffect(effectName) {
+            effects[effectName] = !effects[effectName];
+            localStorage.setItem('countdown-effects', JSON.stringify(effects));
+            applyEffects();
+        }
+
+        function selectTheme(index) {
+            currentThemeIndex = index;
+            document.body.className = themes[currentThemeIndex];
+            localStorage.setItem('countdown-theme', themes[currentThemeIndex]);
+            applyEffects();
+            updateActiveTheme();
+        }
+
+        function updateActiveTheme() {
+            document.querySelectorAll('.theme-option').forEach((option, index) => {
+                option.classList.toggle('active', index === currentThemeIndex);
+            });
+        }
+
+        function animateChange(elementId, newValue) {
+            const element = document.getElementById(elementId);
+            const wrapper = element.querySelector('.number-wrapper');
+            const nextSpan = element.querySelector('.number-next');
+            
+            nextSpan.textContent = newValue;
+            wrapper.style.transform = 'translateY(-50%)';
+            
+            setTimeout(() => {
+                const currentSpan = element.querySelector('.number-current');
+                currentSpan.textContent = newValue;
+                wrapper.style.transition = 'none';
+                wrapper.style.transform = 'translateY(0)';
+                
+                setTimeout(() => {
+                    wrapper.style.transition = '';
+                }, 50);
+            }, 600);
+        }
+
+        function updateDisplay(elementId, value) {
+            const element = document.getElementById(elementId);
+            const currentSpan = element.querySelector('.number-current');
+            currentSpan.textContent = value;
+        }
+
+        function openThemePopup() {
+            document.getElementById('themeOverlay').classList.add('active');
+            updateActiveTheme();
+            applyEffects();
+        }
+
+        function closeThemePopup(event) {
+            if (!event || event.target === document.getElementById('themeOverlay')) {
+                document.getElementById('themeOverlay').classList.remove('active');
+            }
+        }
+
+        // UK Bank Holidays for 2026
+        const ukBankHolidays2026 = [
+            new Date('2026-01-01'), // New Year's Day
+            new Date('2026-04-03'), // Good Friday
+            new Date('2026-04-06'), // Easter Monday
+            new Date('2026-05-04'), // Early May Bank Holiday
+            new Date('2026-05-25'), // Spring Bank Holiday
+            new Date('2026-08-31'), // Summer Bank Holiday
+            new Date('2026-12-25'), // Christmas Day
+            new Date('2026-12-28'), // Boxing Day (substitute)
+        ];
+
+        function isWeekday(date) {
+            const day = date.getDay();
+            return day !== 0 && day !== 6;
+        }
+
+        function isBankHoliday(date) {
+            return ukBankHolidays2026.some(holiday => 
+                holiday.getFullYear() === date.getFullYear() &&
+                holiday.getMonth() === date.getMonth() &&
+                holiday.getDate() === date.getDate()
+            );
+        }
+
+        function calculateWorkingDays(startDate, endDate) {
+            let workingDays = 0;
+            const current = new Date(startDate);
+            current.setHours(0, 0, 0, 0);
+            
+            const end = new Date(endDate);
+            end.setHours(0, 0, 0, 0);
+            
+            while (current <= end) {
+                if (isWeekday(current) && !isBankHoliday(current)) {
+                    workingDays++;
+                }
+                current.setDate(current.getDate() + 1);
+            }
+            
+            return workingDays;
+        }
+
+        function updateCountdown() {
+            const now = new Date();
+            const difference = targetDate - now;
+
+            if (difference <= 0) {
+                updateDisplay('months', '0');
+                updateDisplay('days', '0');
+                updateDisplay('hours', '0');
+                updateDisplay('minutes', '0');
+                updateDisplay('seconds', '0');
+                document.getElementById('workingDays').textContent = '0';
+                return;
+            }
+
+            // Calculate months and remaining days
+            let months = 0;
+            let tempDate = new Date(now);
+            
+            while (tempDate.getFullYear() < targetDate.getFullYear() || 
+                   (tempDate.getFullYear() === targetDate.getFullYear() && 
+                    tempDate.getMonth() < targetDate.getMonth())) {
+                months++;
+                tempDate.setMonth(tempDate.getMonth() + 1);
+            }
+            
+            const remainingMs = targetDate - tempDate;
+            const days = Math.floor(remainingMs / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((remainingMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((remainingMs % (1000 * 60)) / 1000);
+
+            // Update with animations if enabled
+            if (previousValues.months !== months) {
+                if (previousValues.months !== null && effects.animations) {
+                    animateChange('months', months);
+                } else {
+                    updateDisplay('months', months);
+                }
+                previousValues.months = months;
+            }
+            
+            if (previousValues.days !== days) {
+                if (previousValues.days !== null && effects.animations) {
+                    animateChange('days', days);
+                } else {
+                    updateDisplay('days', days);
+                }
+                previousValues.days = days;
+            }
+            
+            if (previousValues.hours !== hours) {
+                if (previousValues.hours !== null && effects.animations) {
+                    animateChange('hours', hours);
+                } else {
+                    updateDisplay('hours', hours);
+                }
+                previousValues.hours = hours;
+            }
+            
+            if (previousValues.minutes !== minutes) {
+                if (previousValues.minutes !== null && effects.animations) {
+                    animateChange('minutes', minutes);
+                } else {
+                    updateDisplay('minutes', minutes);
+                }
+                previousValues.minutes = minutes;
+            }
+            
+            if (previousValues.seconds !== seconds) {
+                if (previousValues.seconds !== null && effects.animations) {
+                    animateChange('seconds', seconds);
+                } else {
+                    updateDisplay('seconds', seconds);
+                }
+                previousValues.seconds = seconds;
+            }
+
+            // Calculate and update working days
+            const workingDays = calculateWorkingDays(now, targetDate);
+            document.getElementById('workingDays').textContent = workingDays;
+        }
+
+        // Initialize
+        updateCountdown();
+        setInterval(updateCountdown, 1000);
+        applyEffects();
+    </script>
+</body>
+</html>
