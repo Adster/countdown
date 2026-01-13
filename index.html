@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Countdown</title>
+    <title>Countdown to June 12th, 2026</title>
     <style>
         * {
             margin: 0;
@@ -361,7 +361,7 @@
         @media (max-width: 768px) {
             body {
                 padding: 5px;
-                overflow-y: auto;
+                align-items: flex-start;
             }
 
             .countdown-grid {
@@ -372,7 +372,8 @@
             
             .container {
                 padding: 10px;
-                margin-top: 10px;
+                margin-top: 15vh;
+                min-height: auto;
             }
 
             h1 {
@@ -709,16 +710,19 @@
                 return;
             }
 
-            // Calculate months and remaining days
-            let months = 0;
-            let tempDate = new Date(now);
+            // Calculate months difference
+            let months = (targetDate.getFullYear() - now.getFullYear()) * 12;
+            months += targetDate.getMonth() - now.getMonth();
             
-            while (tempDate.getFullYear() < targetDate.getFullYear() || 
-                   (tempDate.getFullYear() === targetDate.getFullYear() && 
-                    tempDate.getMonth() < targetDate.getMonth())) {
-                months++;
-                tempDate.setMonth(tempDate.getMonth() + 1);
+            // If we haven't reached the target day in the current month, subtract one month
+            if (now.getDate() > targetDate.getDate() || 
+                (now.getDate() === targetDate.getDate() && now.getHours() >= targetDate.getHours())) {
+                months--;
             }
+            
+            // Calculate days from now to the target date in the final month
+            let tempDate = new Date(now);
+            tempDate.setMonth(tempDate.getMonth() + months);
             
             const remainingMs = targetDate - tempDate;
             const days = Math.floor(remainingMs / (1000 * 60 * 60 * 24));
@@ -784,4 +788,3 @@
     </script>
 </body>
 </html>
-
