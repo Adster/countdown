@@ -454,6 +454,105 @@
                 font-size: 0.95em;
             }
         }
+
+        @media (max-height: 500px) and (orientation: landscape) {
+            body {
+                padding: 5px;
+                align-items: flex-start;
+            }
+
+            .container {
+                padding: 10px;
+                margin-top: 0;
+                min-height: auto;
+            }
+
+            h1 {
+                font-size: 1.1em;
+                margin-bottom: 3px;
+            }
+
+            .target-date {
+                font-size: 0.65em;
+                margin-bottom: 8px;
+            }
+
+            .countdown-grid {
+                grid-template-columns: repeat(5, 1fr);
+                gap: 5px;
+                margin-bottom: 10px;
+            }
+
+            .countdown-item {
+                padding: 8px 3px;
+            }
+
+            .countdown-value {
+                font-size: 1.4em;
+                height: 1em;
+                margin-bottom: 3px;
+            }
+
+            .number-current,
+            .number-next {
+                height: 1em;
+            }
+
+            .countdown-label {
+                font-size: 0.55em;
+                letter-spacing: 0.5px;
+            }
+
+            .working-days-section {
+                padding: 8px;
+            }
+
+            .working-days-label {
+                font-size: 0.65em;
+                margin-bottom: 4px;
+                letter-spacing: 0.5px;
+            }
+
+            .working-days-value {
+                font-size: 1.6em;
+            }
+
+            .theme-button {
+                width: 36px;
+                height: 36px;
+                font-size: 1.1em;
+                top: 5px;
+                right: 5px;
+            }
+
+            .theme-popup {
+                padding: 15px;
+                margin: 5px;
+                max-width: calc(100% - 10px);
+                max-height: calc(100vh - 10px);
+                overflow-y: auto;
+            }
+
+            .theme-popup h2 {
+                font-size: 1.2em;
+                margin-bottom: 10px;
+            }
+
+            .effects-section {
+                padding: 10px;
+                margin-bottom: 15px;
+            }
+
+            .effects-section h3 {
+                font-size: 0.95em;
+                margin-bottom: 8px;
+            }
+
+            .theme-option {
+                padding: 10px 12px;
+                font-size: 0.9em;
+            }
+        }
     </style>
 </head>
 <body>
