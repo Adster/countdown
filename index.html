@@ -870,24 +870,21 @@
         function calculateWorkingDays(startDate, endDate) {
             let workingDays = 0;
             const current = new Date(startDate);
+
+            // Align to the 4 PM boundary: if it's already 4 PM or later, start from tomorrow
+            if (current.getHours() >= 16) {
+                current.setDate(current.getDate() + 1);
+            }
             current.setHours(0, 0, 0, 0);
             
             const end = new Date(endDate);
-            end.setHours(0, 0, 0, 0);
+            end.setHours(16, 0, 0, 0);
             
             while (current <= end) {
                 if (isWeekday(current) && !isBankHoliday(current)) {
                     workingDays++;
                 }
                 current.setDate(current.getDate() + 1);
-            }
-
-            // Working days should tick off at 4 PM (matching the main countdown target time),
-            // not at midnight. If today is a working day and it's already 4:00 PM or later,
-            // subtract 1 so today no longer counts.
-            const now = new Date();
-            if (now.getHours() >= 16 && isWeekday(now) && !isBankHoliday(now)) {
-                workingDays--;
             }
             
             return workingDays;
