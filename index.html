@@ -151,6 +151,21 @@
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
         }
 
+        .video-container {
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+            z-index: 9999;
+        }
+
+        .video-container iframe {
+            width: 100%;
+            height: 100%;
+            border: 0;
+        }
+
         /* Custom background image */
         body.custom-bg {
             background: none;
@@ -750,6 +765,8 @@
             minutes: null,
             seconds: null
         };
+        let videoTriggered = false;
+        let countdownInterval = null;
 
         // Load saved preferences
         const savedTheme = localStorage.getItem('countdown-theme');
@@ -901,6 +918,10 @@
                 updateDisplay('minutes', '0');
                 updateDisplay('seconds', '0');
                 document.getElementById('workingDays').textContent = '0';
+                if (!videoTriggered) {
+                    videoTriggered = true;
+                    setTimeout(showVideoScreen, 3000);
+                }
                 return;
             }
 
@@ -975,6 +996,22 @@
             document.getElementById('workingDays').textContent = workingDays;
         }
 
+        function showVideoScreen() {
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+            }
+            document.body.innerHTML = `
+                <div class="video-container">
+                    <iframe
+                        src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&mute=1&playsinline=1"
+                        title="YouTube video player"
+                        allow="autoplay; encrypted-media"
+                        allowfullscreen>
+                    </iframe>
+                </div>
+            `;
+        }
+
         // Background image management
         function applyBackgroundImage(dataUrl) {
             document.body.style.backgroundImage = `url(${dataUrl})`;
@@ -1023,7 +1060,7 @@
 
         // Initialize
         updateCountdown();
-        setInterval(updateCountdown, 1000);
+        countdownInterval = setInterval(updateCountdown, 1000);
         applyEffects();
     </script>
 </body>
