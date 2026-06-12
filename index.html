@@ -769,6 +769,7 @@
         };
         let videoTriggered = false;
         let countdownInterval = null;
+        const targetAlreadyPassedOnLoad = (targetDate - new Date()) <= 0;
 
         // Load saved preferences
         const savedTheme = localStorage.getItem('countdown-theme');
@@ -922,7 +923,7 @@
                 document.getElementById('workingDays').textContent = '0';
                 if (!videoTriggered) {
                     videoTriggered = true;
-                    setTimeout(showVideoScreen, videoTriggerDelayMs);
+                    setTimeout(showVideoScreen, targetAlreadyPassedOnLoad ? 0 : videoTriggerDelayMs);
                 }
                 return;
             }
