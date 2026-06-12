@@ -746,6 +746,8 @@
     <script>
         // Target date: June 12th, 2026 at 4:00 PM
         const targetDate = new Date('2026-06-12T16:00:00');
+        // Keep countdown visible for 3 seconds at zero before switching to the video screen.
+        const videoTriggerDelayMs = 3000;
 
         // Theme management
         const themes = ['theme-ocean', 'theme-sunset', 'theme-forest', 'theme-fire', 'theme-night'];
@@ -920,7 +922,7 @@
                 document.getElementById('workingDays').textContent = '0';
                 if (!videoTriggered) {
                     videoTriggered = true;
-                    setTimeout(showVideoScreen, 3000);
+                    setTimeout(showVideoScreen, videoTriggerDelayMs);
                 }
                 return;
             }
@@ -999,17 +1001,33 @@
         function showVideoScreen() {
             if (countdownInterval) {
                 clearInterval(countdownInterval);
+                countdownInterval = null;
             }
-            document.body.innerHTML = `
-                <div class="video-container">
-                    <iframe
-                        src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&mute=1&playsinline=1"
-                        title="YouTube video player"
-                        allow="autoplay; encrypted-media"
-                        allowfullscreen>
-                    </iframe>
-                </div>
-            `;
+            const themeControls = document.querySelector('.theme-controls');
+            const themeOverlay = document.getElementById('themeOverlay');
+            const countdownContainer = document.querySelector('.container');
+
+            if (themeControls) themeControls.style.display = 'none';
+            if (themeOverlay) themeOverlay.style.display = 'none';
+            if (countdownContainer) countdownContainer.style.display = 'none';
+
+            const videoContainer = document.createElement('div');
+            videoContainer.className = 'video-container';
+
+            const iframe = document.createElement('iframe');
+            const videoUrl = new URL('https://www.youtube.com/embed/dQw4w9WgXcQ');
+            videoUrl.searchParams.set('autoplay', '1');
+            videoUrl.searchParams.set('mute', '1');
+            videoUrl.searchParams.set('playsinline', '1');
+            videoUrl.searchParams.set('rel', '0');
+            videoUrl.searchParams.set('origin', window.location.origin);
+            iframe.src = videoUrl.toString();
+            iframe.title = 'YouTube video player';
+            iframe.allow = 'autoplay; encrypted-media';
+            iframe.setAttribute('allowfullscreen', '');
+
+            videoContainer.appendChild(iframe);
+            document.body.appendChild(videoContainer);
         }
 
         // Background image management
