@@ -119,8 +119,9 @@
       neck centre      : y = 170 (x = 100)
       bottom inner edge: y = 304
 
-    Everything (glass, sand piles, falling stream, grains) lives inside this
-    SVG and is clipped to the glass interior, so sand can never escape.
+    The glass walls are defined ONCE as a sampled curve (see JS WALL data).
+    The sand bodies trace those exact same walls, so the sand always fills the
+    curved bulb edge-to-edge — only the top surface moves as time passes.
   -->
   <svg id="hourglass-svg" viewBox="0 0 200 340" xmlns="http://www.w3.org/2000/svg">
     <defs>
@@ -170,11 +171,9 @@
       </filter>
 
       <!--
-        Glass interior clip path.
-        Two curved bulbs joined at the neck, traced with cubic Béziers so the
-        glass reads as blown glass rather than flat triangles.
-        Upper bulb: top edge y=36, curves inward to the neck at y=170.
-        Lower bulb: mirror, neck y=170 down to y=304.
+        Glass interior clip path (defensive backstop only).
+        The sand now traces the walls itself, but we keep this clip so
+        highlights / stream / grains can never spill outside the glass.
       -->
       <clipPath id="glass-interior">
         <path d="
@@ -189,69 +188,37 @@
           Z
         " />
       </clipPath>
-
-      <!-- Clip limited to JUST the upper bulb interior -->
-      <clipPath id="upper-interior">
-        <path d="
-          M 44,36
-          C 44,86 70,150 100,170
-          C 130,150 156,86 156,36
-          Z" />
-      </clipPath>
-
-      <!-- Clip limited to JUST the lower bulb interior -->
-      <clipPath id="lower-interior">
-        <path d="
-          M 100,170
-          C 70,190 44,254 44,304
-          L 156,304
-          C 156,254 130,190 100,170
-          Z" />
-      </clipPath>
     </defs>
 
     <!-- ════════════════ GLASS BACK (tint behind the sand) ════════════════ -->
     <path class="glass-back" clip-path="url(#glass-interior)"
       d="M0,0 H200 V340 H0 Z" fill="url(#glassGrad)"/>
 
-    <!-- ════════════════ SAND (all clipped to glass interior) ════════════════ -->
+    <!-- ════════════════ SAND (paths built by JS to follow the curved walls) ═══════ -->
 
-    <!-- Upper pile: a body rect masked by a curved top surface.
-         JS moves #upper-surface down as the sand drains. -->
-    <g clip-path="url(#upper-interior)">
-      <!-- The filled body: from the (moving) surface down to the neck -->
-      <path id="upper-sand" fill="url(#sandGrad)"
-        d="M44,40 L156,40 L156,170 L44,170 Z"/>
-      <!-- Darker funnel hollow that forms in the centre as it drains -->
-      <path id="upper-funnel" fill="#b5780a" opacity="0.45" filter="url(#softBlur)"
-        d="M100,170 L100,170 Z"/>
-      <!-- Bright rim line on the sand surface -->
-      <path id="upper-rim" fill="none" stroke="#fff3cf" stroke-width="1.6"
-        stroke-linecap="round" opacity="0.85" filter="url(#softBlur)"
-        d="M44,40 Q100,40 156,40"/>
-    </g>
+    <!-- Upper pile: fills the curved upper bulb from the (moving) surface to neck -->
+    <path id="upper-sand" fill="url(#sandGrad)" d=""/>
+    <!-- Darker funnel hollow that forms in the centre as it drains -->
+    <path id="upper-funnel" fill="#b5780a" opacity="0" filter="url(#softBlur)" d=""/>
+    <!-- Bright rim line on the sand surface -->
+    <path id="upper-rim" fill="none" stroke="#fff3cf" stroke-width="1.6"
+      stroke-linecap="round" opacity="0.85" filter="url(#softBlur)" d=""/>
 
-    <!-- Lower heap: a growing mound with a rounded top.
-         JS raises #lower-sand and reshapes its dome. -->
-    <g clip-path="url(#lower-interior)">
-      <!-- Soft contact glow where the stream hits the heap -->
+    <!-- Lower heap: fills the curved lower bulb from floor up to the (rising) crest -->
+    <path id="lower-sand" fill="url(#sandGrad)" d=""/>
+    <!-- Highlight along the mound crest -->
+    <path id="lower-crest" fill="none" stroke="#fff3cf" stroke-width="1.4"
+      stroke-linecap="round" opacity="0.7" filter="url(#softBlur)" d=""/>
+    <!-- Soft contact glow where the stream hits the heap (clipped to glass) -->
+    <g clip-path="url(#glass-interior)">
       <ellipse id="impact-glow" cx="100" cy="300" rx="10" ry="4"
         fill="#fff3cf" opacity="0" filter="url(#softBlur)"/>
-      <!-- The heap body -->
-      <path id="lower-sand" fill="url(#sandGrad)"
-        d="M44,304 L156,304 L156,304 L44,304 Z"/>
-      <!-- Highlight along the mound crest -->
-      <path id="lower-crest" fill="none" stroke="#fff3cf" stroke-width="1.4"
-        stroke-linecap="round" opacity="0.7" filter="url(#softBlur)"
-        d="M44,304 Q100,304 156,304"/>
     </g>
 
     <!-- Falling stream + scattered grains, clipped so they stay inside glass -->
     <g clip-path="url(#glass-interior)">
-      <!-- Continuous thin stream from neck to current heap top -->
       <rect id="stream" x="98.4" y="170" width="3.2" height="0"
         fill="url(#streamGrad)" filter="url(#glow)"/>
-      <!-- Animated grains (positions updated by JS) -->
       <g id="grains"></g>
     </g>
 
@@ -339,29 +306,92 @@
     }
   })();
 
-  // ── SVG geometry constants (must match the markup) ─────────────────────────
+  // ── SVG geometry constants ─────────────────────────────────────────────────
   const SVGNS  = 'http://www.w3.org/2000/svg';
   const NECK_Y = 170;          // y of the neck centre
   const NECK_X = 100;
-  const UP_TOP = 40;           // highest the upper sand surface can be
-  const LO_BOT = 304;          // floor of the lower bulb
-  const LO_TOP = 172;          // top of the lower bulb interior
+  const UP_TOP = 36;           // top inner edge of the upper bulb
+  const LO_BOT = 304;          // floor inner edge of the lower bulb
 
-  // Half-width of the glass interior at a given y (used to keep sand inside).
-  // Upper bulb: widest (≈56) at the top (y=36), narrowing to ~0 at the neck.
-  // Lower bulb: ~0 at the neck, widening to ≈56 at the floor (y=304).
-  function halfWidthUpper(y) {
-    const t = (NECK_Y - y) / (NECK_Y - 36); // 1 at top, 0 at neck
-    const tc = Math.max(0, Math.min(1, t));
-    return 2 + 54 * Math.pow(tc, 0.72);
-  }
-  function halfWidthLower(y) {
-    const t = (y - NECK_Y) / (LO_BOT - NECK_Y); // 0 at neck, 1 at floor
-    const tc = Math.max(0, Math.min(1, t));
-    return 2 + 54 * Math.pow(tc, 0.72);
+  /*
+    The glass interior walls are cubic Béziers. To make the sand follow them
+    exactly, we sample the RIGHT wall of each bulb into a lookup table of
+    {y, halfWidth} points. The left wall is the mirror (x = NECK_X ± halfWidth).
+
+    Upper-right wall : from neck (100,170) up to top-right (156,36)
+      Bézier control points mirror the clip path:  (100,170) -> C (130,150)(156,86)(156,36)
+    Lower-right wall : from neck (100,170) down to bottom-right (156,304)
+      (100,170) -> C (130,190)(156,254)(156,304)
+  */
+  function cubic(p0, p1, p2, p3, t) {
+    const mt = 1 - t;
+    return mt*mt*mt*p0 + 3*mt*mt*t*p1 + 3*mt*t*t*p2 + t*t*t*p3;
   }
 
-  // ── Build a small pool of reusable grain dots ─────────────────────────────
+  // Sample N points along a bulb's right wall → array of {y, hw} sorted by y.
+  function sampleWall(ctrl) {
+    const pts = [];
+    const N = 80;
+    for (let i = 0; i <= N; i++) {
+      const t = i / N;
+      const x = cubic(ctrl.x0, ctrl.x1, ctrl.x2, ctrl.x3, t);
+      const y = cubic(ctrl.y0, ctrl.y1, ctrl.y2, ctrl.y3, t);
+      pts.push({ y, hw: x - NECK_X });
+    }
+    pts.sort((a, b) => a.y - b.y);
+    return pts;
+  }
+
+  const UPPER_WALL = sampleWall({ // neck → top-right
+    x0:100, y0:170, x1:130, y1:150, x2:156, y2:86, x3:156, y3:36
+  });
+  const LOWER_WALL = sampleWall({ // neck → bottom-right
+    x0:100, y0:170, x1:130, y1:190, x2:156, y2:254, x3:156, y3:304
+  });
+
+  // Interpolate the half-width of a wall table at an arbitrary y.
+  function hwAt(table, y) {
+    if (y <= table[0].y) return Math.max(0, table[0].hw);
+    if (y >= table[table.length - 1].y) return Math.max(0, table[table.length - 1].hw);
+    // binary search
+    let lo = 0, hi = table.length - 1;
+    while (hi - lo > 1) {
+      const mid = (lo + hi) >> 1;
+      if (table[mid].y < y) lo = mid; else hi = mid;
+    }
+    const a = table[lo], b = table[hi];
+    const f = (y - a.y) / (b.y - a.y);
+    return Math.max(0, a.hw + (b.hw - a.hw) * f);
+  }
+
+  // Build the RIGHT side of a sand body as a polyline that hugs the wall,
+  // from yStart down to yEnd. Returns array of "x,y" strings (top→bottom).
+  function wallPointsRight(table, yStart, yEnd) {
+    const out = [];
+    for (const p of table) {
+      if (p.y >= yStart - 0.001 && p.y <= yEnd + 0.001) {
+        out.push(`${(NECK_X + p.hw).toFixed(2)},${p.y.toFixed(2)}`);
+      }
+    }
+    // Guarantee exact endpoints
+    out.unshift(`${(NECK_X + hwAt(table, yStart)).toFixed(2)},${yStart.toFixed(2)}`);
+    out.push(`${(NECK_X + hwAt(table, yEnd)).toFixed(2)},${yEnd.toFixed(2)}`);
+    return out;
+  }
+  function wallPointsLeft(table, yStart, yEnd) {
+    // bottom→top on the left side (mirror), for closing the polygon
+    const out = [];
+    const filtered = table.filter(p => p.y >= yStart - 0.001 && p.y <= yEnd + 0.001);
+    filtered.reverse();
+    out.push(`${(NECK_X - hwAt(table, yEnd)).toFixed(2)},${yEnd.toFixed(2)}`);
+    for (const p of filtered) {
+      out.push(`${(NECK_X - p.hw).toFixed(2)},${p.y.toFixed(2)}`);
+    }
+    out.push(`${(NECK_X - hwAt(table, yStart)).toFixed(2)},${yStart.toFixed(2)}`);
+    return out;
+  }
+
+  // ── Grain pool ──────────────────────────────────────────────────────────────
   const grainsGroup = document.getElementById('grains');
   const GRAIN_COUNT = 14;
   const grains = [];
@@ -372,7 +402,6 @@
     grainsGroup.appendChild(c);
     grains.push({
       el: c,
-      // travel between neck and floor, each grain offset in phase + speed
       phase: Math.random(),
       speed: 0.6 + Math.random() * 0.8,
       drift: (Math.random() * 2 - 1) * 1.6
@@ -389,56 +418,88 @@
   const elStream      = document.getElementById('stream');
   const pctLabel      = document.getElementById('pct-label');
 
-  // ── Shape builders ──────────────────────────────────────────────────────────
+  // ── Shape builders (now follow the curved walls) ────────────────────────────
 
-  // Upper pile: top surface dips in the centre (funnel) and rises at the walls.
-  // surfaceY = where the sand surface sits (UP_TOP when full → NECK_Y when empty)
+  // Upper pile: curved surface at surfaceY, walls follow UPPER_WALL down to neck.
   function buildUpperSand(surfaceY, funnelDepth) {
-    const hw = halfWidthUpper(surfaceY);
-    const lx = NECK_X - hw, rx = NECK_X + hw;
-    const cx = NECK_X;
-    // Curved surface: walls at surfaceY, centre sagging by funnelDepth
+    const hwTop = hwAt(UPPER_WALL, surfaceY);
+    const lx = NECK_X - hwTop, rx = NECK_X + hwTop;
     const dipY = surfaceY + funnelDepth;
-    elUpperSand.setAttribute('d',
-      `M${lx.toFixed(1)},${surfaceY.toFixed(1)} ` +
-      `Q${cx},${dipY.toFixed(1)} ${rx.toFixed(1)},${surfaceY.toFixed(1)} ` +
-      `L${(NECK_X+3).toFixed(1)},${NECK_Y} ` +
-      `L${(NECK_X-3).toFixed(1)},${NECK_Y} Z`);
+
+    // Surface (curved, dipping in the centre) then DOWN the right wall to the
+    // neck, across, and UP the left wall back to the surface.
+    let d = `M${lx.toFixed(2)},${surfaceY.toFixed(2)} `;
+    d += `Q${NECK_X},${dipY.toFixed(2)} ${rx.toFixed(2)},${surfaceY.toFixed(2)} `;
+    // right wall: surfaceY → neck
+    for (const p of UPPER_WALL) {
+      if (p.y > surfaceY + 0.001 && p.y < NECK_Y) {
+        d += `L${(NECK_X + p.hw).toFixed(2)},${p.y.toFixed(2)} `;
+      }
+    }
+    d += `L${(NECK_X + 3).toFixed(2)},${NECK_Y} `;
+    d += `L${(NECK_X - 3).toFixed(2)},${NECK_Y} `;
+    // left wall: neck → surfaceY (reverse order)
+    for (let i = UPPER_WALL.length - 1; i >= 0; i--) {
+      const p = UPPER_WALL[i];
+      if (p.y > surfaceY + 0.001 && p.y < NECK_Y) {
+        d += `L${(NECK_X - p.hw).toFixed(2)},${p.y.toFixed(2)} `;
+      }
+    }
+    d += 'Z';
+    elUpperSand.setAttribute('d', d);
+
     elUpperRim.setAttribute('d',
-      `M${lx.toFixed(1)},${surfaceY.toFixed(1)} Q${cx},${dipY.toFixed(1)} ${rx.toFixed(1)},${surfaceY.toFixed(1)}`);
-    // Funnel hollow shading near the centre
+      `M${lx.toFixed(2)},${surfaceY.toFixed(2)} Q${NECK_X},${dipY.toFixed(2)} ${rx.toFixed(2)},${surfaceY.toFixed(2)}`);
+
     if (funnelDepth > 1.5) {
+      const fw = hwTop * 0.5;
       elUpperFunnel.setAttribute('d',
-        `M${(cx-hw*0.5).toFixed(1)},${surfaceY.toFixed(1)} ` +
-        `Q${cx},${(dipY+2).toFixed(1)} ${(cx+hw*0.5).toFixed(1)},${surfaceY.toFixed(1)} ` +
-        `L${(NECK_X+2).toFixed(1)},${NECK_Y} L${(NECK_X-2).toFixed(1)},${NECK_Y} Z`);
+        `M${(NECK_X - fw).toFixed(2)},${surfaceY.toFixed(2)} ` +
+        `Q${NECK_X},${(dipY + 2).toFixed(2)} ${(NECK_X + fw).toFixed(2)},${surfaceY.toFixed(2)} ` +
+        `L${(NECK_X + 2).toFixed(2)},${NECK_Y} L${(NECK_X - 2).toFixed(2)},${NECK_Y} Z`);
       elUpperFunnel.setAttribute('opacity', '0.45');
     } else {
       elUpperFunnel.setAttribute('opacity', '0');
     }
   }
 
-  // Lower heap: a mound whose crest rises as sand accumulates.
-  // topY = current crest height (LO_BOT when empty → LO_TOP when full)
-  function buildLowerSand(topY) {
-    const hw = halfWidthLower(LO_BOT); // base half-width at floor
-    const lx = NECK_X - hw, rx = NECK_X + hw;
-    // Mound crest sits at topY in the centre, sloping down to the base corners.
-    // The further it fills, the flatter the dome.
-    const fill = (LO_BOT - topY) / (LO_BOT - LO_TOP); // 0..1
-    const crestY = topY;
-    const shoulderY = LO_BOT - (LO_BOT - topY) * 0.55;
-    elLowerSand.setAttribute('d',
-      `M${lx.toFixed(1)},${LO_BOT} ` +
-      `L${lx.toFixed(1)},${shoulderY.toFixed(1)} ` +
-      `Q${NECK_X},${crestY.toFixed(1)} ${rx.toFixed(1)},${shoulderY.toFixed(1)} ` +
-      `L${rx.toFixed(1)},${LO_BOT} Z`);
+  // Lower heap: walls follow LOWER_WALL from floor up to crestY, capped by a
+  // rounded dome. crestY is where the centre of the heap currently sits.
+  function buildLowerSand(crestY) {
+    const hwTopWall = hwAt(LOWER_WALL, crestY); // wall half-width at the crest line
+    // The dome shoulders meet the walls a little below the crest.
+    const shoulderY = Math.min(LO_BOT, crestY + (LO_BOT - crestY) * 0.30);
+    const hwShoulder = hwAt(LOWER_WALL, shoulderY);
+    const lxS = NECK_X - hwShoulder, rxS = NECK_X + hwShoulder;
+
+    // Start at floor-left, up the LEFT wall to the shoulder, dome across to the
+    // right shoulder, then down the RIGHT wall back to the floor.
+    let d = `M${(NECK_X - hwAt(LOWER_WALL, LO_BOT)).toFixed(2)},${LO_BOT} `;
+    // left wall: floor → shoulder (reverse, going up)
+    for (let i = LOWER_WALL.length - 1; i >= 0; i--) {
+      const p = LOWER_WALL[i];
+      if (p.y < LO_BOT - 0.001 && p.y > shoulderY + 0.001) {
+        d += `L${(NECK_X - p.hw).toFixed(2)},${p.y.toFixed(2)} `;
+      }
+    }
+    d += `L${lxS.toFixed(2)},${shoulderY.toFixed(2)} `;
+    // dome across (crest in the centre)
+    d += `Q${NECK_X},${crestY.toFixed(2)} ${rxS.toFixed(2)},${shoulderY.toFixed(2)} `;
+    // right wall: shoulder → floor
+    for (const p of LOWER_WALL) {
+      if (p.y > shoulderY + 0.001 && p.y < LO_BOT - 0.001) {
+        d += `L${(NECK_X + p.hw).toFixed(2)},${p.y.toFixed(2)} `;
+      }
+    }
+    d += `L${(NECK_X + hwAt(LOWER_WALL, LO_BOT)).toFixed(2)},${LO_BOT} Z`;
+    elLowerSand.setAttribute('d', d);
+
     elLowerCrest.setAttribute('d',
-      `M${lx.toFixed(1)},${shoulderY.toFixed(1)} Q${NECK_X},${crestY.toFixed(1)} ${rx.toFixed(1)},${shoulderY.toFixed(1)}`);
+      `M${lxS.toFixed(2)},${shoulderY.toFixed(2)} Q${NECK_X},${crestY.toFixed(2)} ${rxS.toFixed(2)},${shoulderY.toFixed(2)}`);
     return crestY;
   }
 
-  // ── Main update loop ────────────────────────────────────────────────────────
+  // ── Main update loop ─────────────────────────────────────────────────────────
   function update(tMs) {
     const now = Date.now();
     let progress; // 1 = full (start), 0 = empty (end)
@@ -448,17 +509,16 @@
 
     const flowing = progress > 0 && progress < 1;
 
-    // Upper sand surface descends from UP_TOP (full) to NECK_Y (empty)
+    // Upper surface descends from UP_TOP (full) toward the neck (empty).
     const upperSurfaceY = UP_TOP + (NECK_Y - UP_TOP) * (1 - progress);
-    // Funnel gets deeper mid-drain, fades near the ends
     const funnelDepth = flowing ? 7 * Math.sin(Math.PI * (1 - progress)) + 2 : 0;
     buildUpperSand(upperSurfaceY, funnelDepth);
 
-    // Lower heap crest rises from LO_BOT (empty) to LO_TOP (full)
-    const lowerTopY = LO_BOT - (LO_BOT - LO_TOP) * (1 - progress);
-    const crestY = buildLowerSand(lowerTopY);
+    // Lower crest rises from the floor (empty) toward the neck (full).
+    const lowerCrestY = LO_BOT - (LO_BOT - (NECK_Y + 4)) * (1 - progress);
+    const crestY = buildLowerSand(lowerCrestY);
 
-    // Falling stream: from neck down to the current heap crest
+    // Falling stream from neck to the heap crest.
     if (flowing) {
       const streamTop = NECK_Y;
       const streamBottom = Math.max(crestY - 2, NECK_Y + 4);
@@ -466,21 +526,17 @@
       elStream.setAttribute('height', Math.max(0, streamBottom - streamTop).toFixed(1));
       elStream.setAttribute('opacity', '1');
 
-      // Pulsing impact glow at the landing point
       const pulse = 0.35 + 0.35 * Math.abs(Math.sin(tMs / 220));
       elImpactGlow.setAttribute('cx', NECK_X);
       elImpactGlow.setAttribute('cy', (crestY + 2).toFixed(1));
       elImpactGlow.setAttribute('opacity', pulse.toFixed(2));
 
-      // Animate grains travelling neck → heap
-      const landY = crestY;
-      const spanY = landY - NECK_Y;
+      const spanY = crestY - NECK_Y;
       for (const g of grains) {
         g.phase += (g.speed * (tMs - (g.last || tMs))) / 900;
         g.last = tMs;
         const f = g.phase % 1;
         const y = NECK_Y + spanY * f;
-        // grains converge toward the centre as they near the neck, spread on landing
         const spread = g.drift * (0.4 + 0.6 * f);
         g.el.setAttribute('cx', (NECK_X + spread).toFixed(2));
         g.el.setAttribute('cy', y.toFixed(2));
