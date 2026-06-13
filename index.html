@@ -68,64 +68,38 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      animation: rock 9s ease-in-out infinite;
+    }
+    @keyframes rock {
+      0%, 100% { transform: rotate(-1.2deg); }
+      50%       { transform: rotate(1.2deg); }
     }
 
     /* SVG sizing */
     #hourglass-svg {
       width: min(340px, 82vw);
       height: auto;
-      filter: drop-shadow(0 0 30px rgba(157, 78, 221, 0.55));
+      filter: drop-shadow(0 12px 30px rgba(157, 78, 221, 0.45));
+      overflow: visible;
     }
 
-    /* Glow pulse on the frame */
-    #hg-frame {
-      animation: glowPulse 3s ease-in-out infinite;
+    /* Glow pulse on the metal frame */
+    .hg-frame {
+      animation: glowPulse 3.5s ease-in-out infinite;
     }
     @keyframes glowPulse {
-      0%, 100% { filter: drop-shadow(0 0 6px rgba(157, 78, 221, 0.6)); }
-      50%       { filter: drop-shadow(0 0 18px rgba(199, 125, 255, 1)); }
-    }
-
-    /* Sand in upper bulb — clip-path shrinks from bottom */
-    #upper-sand {
-      transform-origin: center bottom;
-      transition: none;
-    }
-
-    /* Sand in lower bulb — clip-path grows from top */
-    #lower-sand {
-      transform-origin: center top;
-      transition: none;
-    }
-
-    /* Falling sand stream */
-    .sand-particle {
-      position: absolute;
-      border-radius: 50%;
-      background: #f4c542;
-      animation: fall linear infinite;
-      pointer-events: none;
-    }
-    @keyframes fall {
-      0%   { transform: translateY(0); opacity: 1; }
-      100% { transform: translateY(var(--fall-dist, 60px)); opacity: 0; }
+      0%, 100% { filter: drop-shadow(0 0 5px rgba(157, 78, 221, 0.55)); }
+      50%       { filter: drop-shadow(0 0 16px rgba(199, 125, 255, 0.95)); }
     }
 
     /* ── Percentage label ── */
     .pct-label {
-      margin-top: 14px;
+      margin-top: 16px;
       font-size: clamp(0.9rem, 2.5vw, 1.3rem);
-      opacity: 0.75;
+      opacity: 0.8;
       letter-spacing: 0.12em;
-    }
-
-    /* ── Rotation animation for the hourglass itself (slow rock) ── */
-    .hourglass-wrap {
-      animation: rock 8s ease-in-out infinite;
-    }
-    @keyframes rock {
-      0%, 100% { transform: rotate(-1.5deg); }
-      50%       { transform: rotate(1.5deg); }
+      position: relative;
+      z-index: 1;
     }
   </style>
 </head>
@@ -138,124 +112,215 @@
 <div class="hourglass-wrap">
   <!--
     Hourglass SVG.
-    Coordinate system: 200 wide × 320 tall.
-    Upper bulb area (sand): roughly y=30 to y=150 (inner trapezoid).
-    Lower bulb area (sand): roughly y=170 to y=290 (inner trapezoid).
-    Neck midpoint: y=160, x=100.
+    Coordinate system: 200 wide × 340 tall.
+
+    Glass interior key Y values:
+      top inner edge   : y = 36
+      neck centre      : y = 170 (x = 100)
+      bottom inner edge: y = 304
+
+    Everything (glass, sand piles, falling stream, grains) lives inside this
+    SVG and is clipped to the glass interior, so sand can never escape.
   -->
-  <svg id="hourglass-svg" viewBox="0 0 200 320" xmlns="http://www.w3.org/2000/svg">
+  <svg id="hourglass-svg" viewBox="0 0 200 340" xmlns="http://www.w3.org/2000/svg">
     <defs>
-      <!-- Upper bulb clip: sand fills from the widest part DOWN to the neck -->
-      <clipPath id="upper-clip">
-        <rect id="upper-clip-rect" x="40" y="30" width="120" height="120" />
-      </clipPath>
-      <!-- Lower bulb clip: sand fills from neck UP -->
-      <clipPath id="lower-clip">
-        <rect id="lower-clip-rect" x="40" y="170" width="120" height="120" />
-      </clipPath>
-      <!-- Gradient for sand colour -->
+      <!-- Sand colour gradient -->
       <linearGradient id="sandGrad" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%"   stop-color="#ffe066" />
+        <stop offset="0%"   stop-color="#ffe9a8" />
+        <stop offset="45%"  stop-color="#f4c542" />
         <stop offset="100%" stop-color="#c8860a" />
       </linearGradient>
-      <!-- Gradient for glass body -->
+
+      <!-- Falling stream gradient (bright core, soft edges) -->
+      <linearGradient id="streamGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="#ffe9a8" stop-opacity="0.95" />
+        <stop offset="100%" stop-color="#f4c542" stop-opacity="0.85" />
+      </linearGradient>
+
+      <!-- Glass body gradient -->
       <linearGradient id="glassGrad" x1="0" y1="0" x2="1" y2="0">
-        <stop offset="0%"   stop-color="rgba(255,255,255,0.18)" />
-        <stop offset="50%"  stop-color="rgba(255,255,255,0.05)" />
-        <stop offset="100%" stop-color="rgba(255,255,255,0.12)" />
+        <stop offset="0%"   stop-color="rgba(190,225,255,0.16)" />
+        <stop offset="42%"  stop-color="rgba(255,255,255,0.03)" />
+        <stop offset="58%"  stop-color="rgba(255,255,255,0.10)" />
+        <stop offset="100%" stop-color="rgba(190,225,255,0.18)" />
       </linearGradient>
-      <!-- Gradient for the metal frame -->
+
+      <!-- Metal frame gradient -->
       <linearGradient id="frameGrad" x1="0" y1="0" x2="1" y2="0">
-        <stop offset="0%"   stop-color="#9d4edd" />
+        <stop offset="0%"   stop-color="#7b2cbf" />
         <stop offset="50%"  stop-color="#e0aaff" />
-        <stop offset="100%" stop-color="#9d4edd" />
+        <stop offset="100%" stop-color="#7b2cbf" />
       </linearGradient>
-      <!-- Glow filter -->
-      <filter id="glow">
-        <feGaussianBlur stdDeviation="3" result="blur"/>
+
+      <!-- Radial sheen for the cap highlights -->
+      <radialGradient id="capSheen" cx="0.35" cy="0.3" r="0.8">
+        <stop offset="0%"   stop-color="#f3e6ff" />
+        <stop offset="100%" stop-color="#7b2cbf" />
+      </radialGradient>
+
+      <!-- Soft glow filter -->
+      <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="2.4" result="blur"/>
         <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
       </filter>
+
+      <!-- Blur used to soften the sand pile surfaces / contact glow -->
+      <filter id="softBlur" x="-30%" y="-30%" width="160%" height="160%">
+        <feGaussianBlur stdDeviation="1.1" />
+      </filter>
+
+      <!--
+        Glass interior clip path.
+        Two curved bulbs joined at the neck, traced with cubic Béziers so the
+        glass reads as blown glass rather than flat triangles.
+        Upper bulb: top edge y=36, curves inward to the neck at y=170.
+        Lower bulb: mirror, neck y=170 down to y=304.
+      -->
+      <clipPath id="glass-interior">
+        <path d="
+          M 44,36
+          C 44,86 70,150 100,170
+          C 130,150 156,86 156,36
+          Z
+          M 100,170
+          C 70,190 44,254 44,304
+          L 156,304
+          C 156,254 130,190 100,170
+          Z
+        " />
+      </clipPath>
+
+      <!-- Clip limited to JUST the upper bulb interior -->
+      <clipPath id="upper-interior">
+        <path d="
+          M 44,36
+          C 44,86 70,150 100,170
+          C 130,150 156,86 156,36
+          Z" />
+      </clipPath>
+
+      <!-- Clip limited to JUST the lower bulb interior -->
+      <clipPath id="lower-interior">
+        <path d="
+          M 100,170
+          C 70,190 44,254 44,304
+          L 156,304
+          C 156,254 130,190 100,170
+          Z" />
+      </clipPath>
     </defs>
 
-    <!-- ── Upper sand (inside upper bulb, clipped) ── -->
-    <!--
-      The upper-bulb inner shape is a trapezoid:
-        top edge: x=44..156, y=34
-        bottom point: x=97..103, y=154
-      We approximate it with a polygon and clip by upper-clip-rect.
-    -->
-    <g clip-path="url(#upper-clip)">
-      <!-- Full upper sand shape (a wedge narrowing toward neck) -->
-      <polygon id="upper-sand"
-        points="44,34 156,34 103,154 97,154"
-        fill="url(#sandGrad)" opacity="0.9" />
+    <!-- ════════════════ GLASS BACK (tint behind the sand) ════════════════ -->
+    <path class="glass-back" clip-path="url(#glass-interior)"
+      d="M0,0 H200 V340 H0 Z" fill="url(#glassGrad)"/>
+
+    <!-- ════════════════ SAND (all clipped to glass interior) ════════════════ -->
+
+    <!-- Upper pile: a body rect masked by a curved top surface.
+         JS moves #upper-surface down as the sand drains. -->
+    <g clip-path="url(#upper-interior)">
+      <!-- The filled body: from the (moving) surface down to the neck -->
+      <path id="upper-sand" fill="url(#sandGrad)"
+        d="M44,40 L156,40 L156,170 L44,170 Z"/>
+      <!-- Darker funnel hollow that forms in the centre as it drains -->
+      <path id="upper-funnel" fill="#b5780a" opacity="0.45" filter="url(#softBlur)"
+        d="M100,170 L100,170 Z"/>
+      <!-- Bright rim line on the sand surface -->
+      <path id="upper-rim" fill="none" stroke="#fff3cf" stroke-width="1.6"
+        stroke-linecap="round" opacity="0.85" filter="url(#softBlur)"
+        d="M44,40 Q100,40 156,40"/>
     </g>
 
-    <!-- ── Lower sand (inside lower bulb, clipped) ── -->
-    <!--
-      The lower-bulb inner shape is a trapezoid:
-        top point: x=97..103, y=166
-        bottom edge: x=44..156, y=286
-    -->
-    <g clip-path="url(#lower-clip)">
-      <polygon id="lower-sand"
-        points="97,166 103,166 156,286 44,286"
-        fill="url(#sandGrad)" opacity="0.9" />
+    <!-- Lower heap: a growing mound with a rounded top.
+         JS raises #lower-sand and reshapes its dome. -->
+    <g clip-path="url(#lower-interior)">
+      <!-- Soft contact glow where the stream hits the heap -->
+      <ellipse id="impact-glow" cx="100" cy="300" rx="10" ry="4"
+        fill="#fff3cf" opacity="0" filter="url(#softBlur)"/>
+      <!-- The heap body -->
+      <path id="lower-sand" fill="url(#sandGrad)"
+        d="M44,304 L156,304 L156,304 L44,304 Z"/>
+      <!-- Highlight along the mound crest -->
+      <path id="lower-crest" fill="none" stroke="#fff3cf" stroke-width="1.4"
+        stroke-linecap="round" opacity="0.7" filter="url(#softBlur)"
+        d="M44,304 Q100,304 156,304"/>
     </g>
 
-    <!-- ── Glass body ── -->
-    <!-- Upper bulb outline -->
-    <polygon id="hg-frame"
-      points="36,26 164,26 103,154 97,154"
-      fill="url(#glassGrad)"
-      stroke="url(#frameGrad)" stroke-width="3.5"
-      stroke-linejoin="round"
-    />
-    <!-- Lower bulb outline -->
-    <polygon
-      points="97,166 103,166 164,294 36,294"
-      fill="url(#glassGrad)"
-      stroke="url(#frameGrad)" stroke-width="3.5"
-      stroke-linejoin="round"
-    />
-    <!-- Neck connector (tiny fill) -->
-    <rect x="97" y="154" width="6" height="12"
-      fill="url(#sandGrad)" opacity="0.6"/>
+    <!-- Falling stream + scattered grains, clipped so they stay inside glass -->
+    <g clip-path="url(#glass-interior)">
+      <!-- Continuous thin stream from neck to current heap top -->
+      <rect id="stream" x="98.4" y="170" width="3.2" height="0"
+        fill="url(#streamGrad)" filter="url(#glow)"/>
+      <!-- Animated grains (positions updated by JS) -->
+      <g id="grains"></g>
+    </g>
 
-    <!-- ── Top cap ── -->
-    <rect x="26" y="18" width="148" height="12" rx="4"
-      fill="url(#frameGrad)" filter="url(#glow)"/>
+    <!-- ════════════════ GLASS FRONT (shell + shine over the sand) ════════════════ -->
 
-    <!-- ── Bottom cap ── -->
-    <rect x="26" y="290" width="148" height="12" rx="4"
-      fill="url(#frameGrad)" filter="url(#glow)"/>
+    <!-- Glass shell outline -->
+    <path class="hg-frame" filter="url(#glow)"
+      d="
+        M 40,32
+        C 40,86 68,152 100,172
+        C 132,152 160,86 160,32
+        M 100,172
+        C 68,192 40,254 40,308
+        M 100,172
+        C 132,192 160,254 160,308
+      "
+      fill="none" stroke="url(#frameGrad)" stroke-width="3.4" stroke-linecap="round"/>
 
-    <!-- ── Side pillars ── -->
-    <rect x="26" y="26" width="10" height="268" rx="3"
-      fill="url(#frameGrad)" opacity="0.7"/>
-    <rect x="164" y="26" width="10" height="268" rx="3"
-      fill="url(#frameGrad)" opacity="0.7"/>
+    <!-- Inner glass edge (subtle double-wall) -->
+    <path
+      d="
+        M 45,37
+        C 45,86 71,150 100,169
+        C 129,150 155,86 155,37
+        M 100,171
+        C 71,190 45,254 45,303
+        M 100,171
+        C 129,190 155,254 155,303
+      "
+      fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="1"/>
 
-    <!-- ── Highlight sheen on glass ── -->
-    <line x1="56" y1="34" x2="98" y2="150"
-      stroke="rgba(255,255,255,0.22)" stroke-width="2" stroke-linecap="round"/>
-    <line x1="56" y1="280" x2="98" y2="168"
-      stroke="rgba(255,255,255,0.14)" stroke-width="1.5" stroke-linecap="round"/>
+    <!-- Specular highlight sweeping down the left of each bulb -->
+    <path d="M58,46 C56,84 72,134 92,160"
+      fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2.4"
+      stroke-linecap="round" opacity="0.55"/>
+    <path d="M60,296 C58,256 74,206 92,182"
+      fill="none" stroke="rgba(255,255,255,0.32)" stroke-width="1.8"
+      stroke-linecap="round" opacity="0.5"/>
+
+    <!-- ════════════════ FRAME HARDWARE ════════════════ -->
+
+    <!-- Side pillars -->
+    <rect class="hg-frame" x="28" y="30" width="9" height="280" rx="4"
+      fill="url(#frameGrad)" opacity="0.85"/>
+    <rect class="hg-frame" x="163" y="30" width="9" height="280" rx="4"
+      fill="url(#frameGrad)" opacity="0.85"/>
+
+    <!-- Top cap -->
+    <rect class="hg-frame" x="22" y="18" width="156" height="14" rx="5"
+      fill="url(#capSheen)" filter="url(#glow)"/>
+    <!-- Bottom cap -->
+    <rect class="hg-frame" x="22" y="308" width="156" height="14" rx="5"
+      fill="url(#capSheen)" filter="url(#glow)"/>
+
+    <!-- Cap bevel highlights -->
+    <rect x="26" y="20" width="148" height="3" rx="1.5" fill="rgba(255,255,255,0.45)"/>
+    <rect x="26" y="310" width="148" height="3" rx="1.5" fill="rgba(255,255,255,0.4)"/>
   </svg>
-
-  <!-- Falling sand particles rendered as absolutely-positioned divs over the SVG -->
-  <div id="particle-host" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;"></div>
 </div>
 
 <p class="pct-label" id="pct-label">Calculating…</p>
 
 <script>
-  // ── Configuration ──────────────────────────────────────────────────────────
+  // ── Configuration ────────────────────────────────────────────────────────
   const START  = new Date('2026-06-12T16:00:00'); // full  (100%)
   const END    = new Date('2026-08-10T09:00:00'); // empty (0%)
   const TOTAL_MS = END - START;
 
-  // ── Stars ──────────────────────────────────────────────────────────────────
+  // ── Stars ────────────────────────────────────────────────────────────────
   (function buildStars() {
     const container = document.getElementById('stars');
     for (let i = 0; i < 160; i++) {
@@ -274,133 +339,169 @@
     }
   })();
 
-  // ── Sand particle stream ───────────────────────────────────────────────────
-  const particleHost = document.getElementById('particle-host');
-  const MAX_PARTICLES = 8;
+  // ── SVG geometry constants (must match the markup) ─────────────────────────
+  const SVGNS  = 'http://www.w3.org/2000/svg';
+  const NECK_Y = 170;          // y of the neck centre
+  const NECK_X = 100;
+  const UP_TOP = 40;           // highest the upper sand surface can be
+  const LO_BOT = 304;          // floor of the lower bulb
+  const LO_TOP = 172;          // top of the lower bulb interior
 
-  function spawnParticle(progressFraction) {
-    // Only spawn if progress > 0 and < 1 (sand is still flowing)
-    if (progressFraction <= 0 || progressFraction >= 1) return;
-
-    const svg = document.getElementById('hourglass-svg');
-    const rect = svg.getBoundingClientRect();
-    const hostRect = particleHost.parentElement.getBoundingClientRect();
-
-    // Neck position in SVG coords: x=100, y=157
-    // Map SVG coords → pixel position relative to host div
-    const svgW = 200, svgH = 320;
-    const scaleX = rect.width  / svgW;
-    const scaleY = rect.height / svgH;
-    const neckX = (rect.left - hostRect.left) + 100 * scaleX;
-    const neckY = (rect.top  - hostRect.top)  + 157 * scaleY;
-
-    const p = document.createElement('div');
-    p.className = 'sand-particle';
-    const size = Math.random() * 3 + 2;
-    const fallDist = Math.random() * 20 + 15;
-    const dur = (Math.random() * 0.4 + 0.35).toFixed(2);
-    p.style.cssText = [
-      `width:${size}px`, `height:${size}px`,
-      `left:${neckX + (Math.random()*4-2)}px`,
-      `top:${neckY}px`,
-      `--fall-dist:${fallDist}px`,
-      `animation-duration:${dur}s`
-    ].join(';');
-    particleHost.appendChild(p);
-    setTimeout(() => p.remove(), parseFloat(dur) * 1000 + 50);
+  // Half-width of the glass interior at a given y (used to keep sand inside).
+  // Upper bulb: widest (≈56) at the top (y=36), narrowing to ~0 at the neck.
+  // Lower bulb: ~0 at the neck, widening to ≈56 at the floor (y=304).
+  function halfWidthUpper(y) {
+    const t = (NECK_Y - y) / (NECK_Y - 36); // 1 at top, 0 at neck
+    const tc = Math.max(0, Math.min(1, t));
+    return 2 + 54 * Math.pow(tc, 0.72);
+  }
+  function halfWidthLower(y) {
+    const t = (y - NECK_Y) / (LO_BOT - NECK_Y); // 0 at neck, 1 at floor
+    const tc = Math.max(0, Math.min(1, t));
+    return 2 + 54 * Math.pow(tc, 0.72);
   }
 
-  // ── Main hourglass update ──────────────────────────────────────────────────
-  /*
-    upperSand polygon baseline points (full sand):
-      "44,34 156,34 103,154 97,154"
-    When progress=1 (start, full): upper sand is at full → top y=34 (unchanged)
-    When progress=0 (end, empty):  upper sand top y rises to 154 (collapsed to neck)
-
-    We linearly interpolate the top edge y-coordinate:
-      topY = 154 - (154 - 34) * progress = 154 - 120 * progress
-
-    The x-values of the top edge also shrink proportionally (the bulb is a trapezoid).
-    At full (y=34):  left x=44, right x=156
-    At empty (y=154): left x=97, right x=103
-
-    Interpolate x:
-      leftX  = 97  - (97  - 44) * progress = 97  - 53 * progress
-      rightX = 103 + (156 - 103) * progress = 103 + 53 * progress
-
-    lower-clip-rect:
-    At full (progress=1): lower clip starts at y=286 (nothing visible) → height=0
-    At empty (progress=0): lower clip starts at y=170 → height=120 (full)
-      clipY = 170 + 116 * progress   (top of clip rect)
-      clipH = 286 - clipY
-
-    upper-clip-rect:
-    At full (progress=1): clip goes from y=topY to y=154 → height = 154 - topY
-    At empty (progress=0): height = 0
-  */
-
-  function computeUpperSandPoints(progress) {
-    const topY   = 154 - 120 * progress;
-    const leftX  = 97  - 53  * progress;
-    const rightX = 103 + 53  * progress;
-    // Bottom is always at the neck
-    return `${leftX.toFixed(1)},${topY.toFixed(1)} ${rightX.toFixed(1)},${topY.toFixed(1)} 103,154 97,154`;
+  // ── Build a small pool of reusable grain dots ─────────────────────────────
+  const grainsGroup = document.getElementById('grains');
+  const GRAIN_COUNT = 14;
+  const grains = [];
+  for (let i = 0; i < GRAIN_COUNT; i++) {
+    const c = document.createElementNS(SVGNS, 'circle');
+    c.setAttribute('r', (Math.random() * 0.9 + 0.6).toFixed(2));
+    c.setAttribute('fill', Math.random() < 0.5 ? '#ffe9a8' : '#f4c542');
+    grainsGroup.appendChild(c);
+    grains.push({
+      el: c,
+      // travel between neck and floor, each grain offset in phase + speed
+      phase: Math.random(),
+      speed: 0.6 + Math.random() * 0.8,
+      drift: (Math.random() * 2 - 1) * 1.6
+    });
   }
 
-  function updateHourglass() {
+  // ── Element handles ────────────────────────────────────────────────────────
+  const elUpperSand   = document.getElementById('upper-sand');
+  const elUpperFunnel = document.getElementById('upper-funnel');
+  const elUpperRim    = document.getElementById('upper-rim');
+  const elLowerSand   = document.getElementById('lower-sand');
+  const elLowerCrest  = document.getElementById('lower-crest');
+  const elImpactGlow  = document.getElementById('impact-glow');
+  const elStream      = document.getElementById('stream');
+  const pctLabel      = document.getElementById('pct-label');
+
+  // ── Shape builders ──────────────────────────────────────────────────────────
+
+  // Upper pile: top surface dips in the centre (funnel) and rises at the walls.
+  // surfaceY = where the sand surface sits (UP_TOP when full → NECK_Y when empty)
+  function buildUpperSand(surfaceY, funnelDepth) {
+    const hw = halfWidthUpper(surfaceY);
+    const lx = NECK_X - hw, rx = NECK_X + hw;
+    const cx = NECK_X;
+    // Curved surface: walls at surfaceY, centre sagging by funnelDepth
+    const dipY = surfaceY + funnelDepth;
+    elUpperSand.setAttribute('d',
+      `M${lx.toFixed(1)},${surfaceY.toFixed(1)} ` +
+      `Q${cx},${dipY.toFixed(1)} ${rx.toFixed(1)},${surfaceY.toFixed(1)} ` +
+      `L${(NECK_X+3).toFixed(1)},${NECK_Y} ` +
+      `L${(NECK_X-3).toFixed(1)},${NECK_Y} Z`);
+    elUpperRim.setAttribute('d',
+      `M${lx.toFixed(1)},${surfaceY.toFixed(1)} Q${cx},${dipY.toFixed(1)} ${rx.toFixed(1)},${surfaceY.toFixed(1)}`);
+    // Funnel hollow shading near the centre
+    if (funnelDepth > 1.5) {
+      elUpperFunnel.setAttribute('d',
+        `M${(cx-hw*0.5).toFixed(1)},${surfaceY.toFixed(1)} ` +
+        `Q${cx},${(dipY+2).toFixed(1)} ${(cx+hw*0.5).toFixed(1)},${surfaceY.toFixed(1)} ` +
+        `L${(NECK_X+2).toFixed(1)},${NECK_Y} L${(NECK_X-2).toFixed(1)},${NECK_Y} Z`);
+      elUpperFunnel.setAttribute('opacity', '0.45');
+    } else {
+      elUpperFunnel.setAttribute('opacity', '0');
+    }
+  }
+
+  // Lower heap: a mound whose crest rises as sand accumulates.
+  // topY = current crest height (LO_BOT when empty → LO_TOP when full)
+  function buildLowerSand(topY) {
+    const hw = halfWidthLower(LO_BOT); // base half-width at floor
+    const lx = NECK_X - hw, rx = NECK_X + hw;
+    // Mound crest sits at topY in the centre, sloping down to the base corners.
+    // The further it fills, the flatter the dome.
+    const fill = (LO_BOT - topY) / (LO_BOT - LO_TOP); // 0..1
+    const crestY = topY;
+    const shoulderY = LO_BOT - (LO_BOT - topY) * 0.55;
+    elLowerSand.setAttribute('d',
+      `M${lx.toFixed(1)},${LO_BOT} ` +
+      `L${lx.toFixed(1)},${shoulderY.toFixed(1)} ` +
+      `Q${NECK_X},${crestY.toFixed(1)} ${rx.toFixed(1)},${shoulderY.toFixed(1)} ` +
+      `L${rx.toFixed(1)},${LO_BOT} Z`);
+    elLowerCrest.setAttribute('d',
+      `M${lx.toFixed(1)},${shoulderY.toFixed(1)} Q${NECK_X},${crestY.toFixed(1)} ${rx.toFixed(1)},${shoulderY.toFixed(1)}`);
+    return crestY;
+  }
+
+  // ── Main update loop ────────────────────────────────────────────────────────
+  function update(tMs) {
     const now = Date.now();
     let progress; // 1 = full (start), 0 = empty (end)
+    if (now <= START.getTime())      progress = 1;
+    else if (now >= END.getTime())   progress = 0;
+    else                             progress = 1 - (now - START.getTime()) / TOTAL_MS;
 
-    if (now <= START.getTime()) {
-      progress = 1;
-    } else if (now >= END.getTime()) {
-      progress = 0;
+    const flowing = progress > 0 && progress < 1;
+
+    // Upper sand surface descends from UP_TOP (full) to NECK_Y (empty)
+    const upperSurfaceY = UP_TOP + (NECK_Y - UP_TOP) * (1 - progress);
+    // Funnel gets deeper mid-drain, fades near the ends
+    const funnelDepth = flowing ? 7 * Math.sin(Math.PI * (1 - progress)) + 2 : 0;
+    buildUpperSand(upperSurfaceY, funnelDepth);
+
+    // Lower heap crest rises from LO_BOT (empty) to LO_TOP (full)
+    const lowerTopY = LO_BOT - (LO_BOT - LO_TOP) * (1 - progress);
+    const crestY = buildLowerSand(lowerTopY);
+
+    // Falling stream: from neck down to the current heap crest
+    if (flowing) {
+      const streamTop = NECK_Y;
+      const streamBottom = Math.max(crestY - 2, NECK_Y + 4);
+      elStream.setAttribute('y', streamTop);
+      elStream.setAttribute('height', Math.max(0, streamBottom - streamTop).toFixed(1));
+      elStream.setAttribute('opacity', '1');
+
+      // Pulsing impact glow at the landing point
+      const pulse = 0.35 + 0.35 * Math.abs(Math.sin(tMs / 220));
+      elImpactGlow.setAttribute('cx', NECK_X);
+      elImpactGlow.setAttribute('cy', (crestY + 2).toFixed(1));
+      elImpactGlow.setAttribute('opacity', pulse.toFixed(2));
+
+      // Animate grains travelling neck → heap
+      const landY = crestY;
+      const spanY = landY - NECK_Y;
+      for (const g of grains) {
+        g.phase += (g.speed * (tMs - (g.last || tMs))) / 900;
+        g.last = tMs;
+        const f = g.phase % 1;
+        const y = NECK_Y + spanY * f;
+        // grains converge toward the centre as they near the neck, spread on landing
+        const spread = g.drift * (0.4 + 0.6 * f);
+        g.el.setAttribute('cx', (NECK_X + spread).toFixed(2));
+        g.el.setAttribute('cy', y.toFixed(2));
+        g.el.setAttribute('opacity', (0.9 * (1 - f * 0.5)).toFixed(2));
+      }
     } else {
-      const elapsed = now - START.getTime();
-      progress = 1 - (elapsed / TOTAL_MS);
+      elStream.setAttribute('opacity', '0');
+      elImpactGlow.setAttribute('opacity', '0');
+      for (const g of grains) g.el.setAttribute('opacity', '0');
     }
-
-    // Upper sand polygon
-    document.getElementById('upper-sand').setAttribute('points', computeUpperSandPoints(progress));
-
-    // Upper clip rect
-    const upperTopY = 154 - 120 * progress;
-    const upperClipH = Math.max(0, 154 - upperTopY);
-    const ucr = document.getElementById('upper-clip-rect');
-    ucr.setAttribute('y', upperTopY.toFixed(1));
-    ucr.setAttribute('height', upperClipH.toFixed(1));
-
-    // Lower clip rect — sand builds up from bottom
-    // At progress=1 (full upper): lower is empty → clipY=286, height=0
-    // At progress=0 (empty upper): lower is full → clipY=166, height=120
-    const lowerClipY = 166 + 120 * progress; // 166+(120) = 286 when full; 166 when empty
-    const lowerClipH = Math.max(0, 286 - lowerClipY);
-    const lcr = document.getElementById('lower-clip-rect');
-    lcr.setAttribute('y', lowerClipY.toFixed(1));
-    lcr.setAttribute('height', lowerClipH.toFixed(1));
 
     // Percentage label
     const pct = Math.round(progress * 100);
-    const pctLabel = document.getElementById('pct-label');
-    if (progress <= 0) {
-      pctLabel.textContent = "Time's up! 🎸";
-    } else if (progress >= 1) {
-      pctLabel.textContent = 'The adventure begins…';
-    } else {
-      pctLabel.textContent = `${pct}% remaining`;
-    }
+    if (progress <= 0)      pctLabel.textContent = "Time's up! 🎸";
+    else if (progress >= 1) pctLabel.textContent = 'The adventure begins…';
+    else                    pctLabel.textContent = `${pct}% remaining`;
 
-    // Spawn a sand particle if flowing
-    if (progress > 0 && progress < 1) {
-      if (particleHost.children.length < MAX_PARTICLES) {
-        spawnParticle(progress);
-      }
-    }
+    requestAnimationFrame(update);
   }
 
-  // Run every ~50ms for smooth animation
-  updateHourglass();
-  setInterval(updateHourglass, 50);
+  requestAnimationFrame(update);
 </script>
 </body>
 </html>
